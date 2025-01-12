@@ -157,9 +157,31 @@ const EditOperator = React.memo((props: Props) => {
           </Typography>
           {opSplit[0]}
         </Typography>
-        <IconButton onClick={onClose}>
-          <Close />
-        </IconButton>
+        <Box component="div" 
+          sx={{ display: "flex", 
+                FlexFlow: "row nowrap", 
+                gap:"8px" }} >
+          <ToggleButton value="owned" selected={op.potential > 0} onClick={onChangeOwned} sx={{ p: 1.5 }}>
+            Owned
+          </ToggleButton>
+          <ToggleButton
+            value="favorite"
+            selected={op.favorite}
+            onClick={onChangeFavorite}
+            disabled={!op.potential}
+            aria-label="favorite"
+            sx={{ p: 1.5 }}
+          >
+            {op.favorite ? (
+              <Favorite fontSize="small" color="error" sx={{ m: "2px" }} />
+            ) : (
+              <FavoriteBorder fontSize="small" color="error" sx={{ m: "2px" }} />
+            )}
+          </ToggleButton>
+          <IconButton onClick={onClose}>
+            <Close />
+          </IconButton>
+        </Box>
       </DialogTitle>
       <DialogContent
         sx={{
@@ -167,7 +189,7 @@ const EditOperator = React.memo((props: Props) => {
           gap: 2,
           gridTemplateColumns: {
             xs: "1fr",
-            sm: "1fr 320px",
+            sm: "1fr 1fr",
           },
         }}
       >
@@ -224,56 +246,25 @@ const EditOperator = React.memo((props: Props) => {
             </Collapse>
           </Box>
         ) : null}
-        <Select title="General">
-          <Box
-            sx={{
-              display: "flex",
-              gap: 2,
-              "& > *": {
-                lineHeight: 0.5,
-              },
-            }}
-          >
-            <ToggleButton value="owned" selected={op.potential > 0} onClick={onChangeOwned} sx={{ p: 1.5 }}>
-              Owned
-            </ToggleButton>
-            <ToggleButton
-              value="favorite"
-              selected={op.favorite}
-              onClick={onChangeFavorite}
-              disabled={!op.potential}
-              aria-label="favorite"
-              sx={{ p: 1.5 }}
-            >
-              {op.favorite ? (
-                <Favorite fontSize="small" color="error" sx={{ m: "2px" }} />
-              ) : (
-                <FavoriteBorder fontSize="small" color="error" sx={{ m: "2px" }} />
-              )}
-            </ToggleButton>
-          </Box>
-        </Select>
         <DisabledContext.Provider value={op.potential === 0}>
+        <Select title="Promotion">
+            <Promotion
+              value={op.elite}
+              exclusive
+              max={MAX_PROMOTION_BY_RARITY[opData.rarity]}
+              onChange={onChangeElite}
+              size={28}
+            />
+          </Select>        
           <Select title="Potential">
             <Potential
               value={op.potential}
               exclusive
               max={getMaxPotentialById(op.op_id)}
               onChange={onChangePotential}
-              size={32}
+              size={28}
               bonuses={opData.potentials}
             />
-          </Select>
-          <Select title="Promotion">
-            <Promotion
-              value={op.elite}
-              exclusive
-              max={MAX_PROMOTION_BY_RARITY[opData.rarity]}
-              onChange={onChangeElite}
-            />
-          </Select>
-          <Select title="Level">
-            <Level value={op.level} max={MAX_LEVEL_BY_RARITY[opData.rarity][op.elite]} onChange={onChangeLevel} />
           </Select>
           {opData?.skillData?.length ? (
             <Select title="Skill Rank">
@@ -285,6 +276,9 @@ const EditOperator = React.memo((props: Props) => {
               />
             </Select>
           ) : undefined}
+          <Select title="Level">
+            <Level value={op.level} max={MAX_LEVEL_BY_RARITY[opData.rarity][op.elite]} onChange={onChangeLevel} />
+          </Select>
           {opData.rarity > 3 ? (
             <Select title="Masteries">
               <Mastery sx={{ gap: 2 }}>
@@ -307,20 +301,7 @@ const EditOperator = React.memo((props: Props) => {
               </Mastery>
             </Select>
           ) : undefined}
-          {opSkins?.length > 1 ? (
-            <Select title="Outfits">
-              <Skins value={op.skin} exclusive onChange={onChangeSkin}>
-                {opSkins
-                  .sort((a, b) => a.sortId - b.sortId)
-                  .map((skin: Skin) => {
-                    // sortId -1 is the E2 skin, sortId -2 is Amiya's E1 skin
-                    const d = (skin.sortId === -1 && op.elite < 2) || (skin.sortId === -2 && op.elite < 1);
-                    return <Skins.Select key={skin.skinId} {...skin} disabled={d} />;
-                  })}
-              </Skins>
-            </Select>
-          ) : undefined}
-          {opData.moduleData?.length ? (
+                    {opData.moduleData?.length ? (
             <Select title="Modules">
               <Module sx={{ gap: 2 }}>
                 {opData.moduleData.map((mod) => (
@@ -341,8 +322,32 @@ const EditOperator = React.memo((props: Props) => {
               </Module>
             </Select>
           ) : undefined}
-        </DisabledContext.Provider>
-      </DialogContent>
+          {opSkins?.length > 1 ? (
+            <Box
+              sx={{
+                gridColumn: "1 / -1",
+                display: "flex",
+                width: "100%",
+                flexFlow: "row wrap",
+                backgroundColor: "background.default",
+                borderRadius: 1,
+                alignItems: "start",
+              }}>
+              <Select title="Outfits">
+                <Skins value={op.skin} exclusive onChange={onChangeSkin}>
+                  {opSkins
+                    .sort((a, b) => a.sortId - b.sortId)
+                    .map((skin: Skin) => {
+                      // sortId -1 is the E2 skin, sortId -2 is Amiya's E1 skin
+                      const d = (skin.sortId === -1 && op.elite < 2) || (skin.sortId === -2 && op.elite < 1);
+                      return <Skins.Select key={skin.skinId} {...skin} disabled={d} />;
+                    })}
+                </Skins>
+              </Select>
+            </Box>
+          ) : undefined}
+          </DisabledContext.Provider>
+      </DialogContent>      
     </Dialog>
   );
 });

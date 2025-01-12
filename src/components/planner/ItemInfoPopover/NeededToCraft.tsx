@@ -22,7 +22,7 @@ const NeededToCraft: React.FC<Props> = (props) => {
 
   return (
     <ItemInfoSection heading="Needed to craft">
-      <Stack spacing={1} direction="row" justifyContent="space-evenly">
+      <Stack spacing={1} direction="row" justifyContent="space-evenly" flexWrap="wrap">
         {craftedItemIds.map((craftedItemId) => {
           const craftedItem: Item =
             itemsJson[craftedItemId as keyof typeof itemsJson];
