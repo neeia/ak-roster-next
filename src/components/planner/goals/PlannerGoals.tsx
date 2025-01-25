@@ -475,13 +475,11 @@ const PlannerGoals = (props: Props) => {
         const { depot: _depot } = expToBattleRecords(exp, depot);
         _depot["4001"].stock -= lmd;
         setDepot(Object.values(_depot));
-      } else {  
-        const _depot = { ...depot }; 
-        ingredients.forEach(({ id, quantity }) => {
-          if (_depot[id]) {
-            _depot[id].stock = Math.max(0, _depot[id].stock - quantity);
-          }
-        });
+      } else {
+        const {depot: _depot}  = canCompleteByCrafting(
+          Object.fromEntries(ingredients.map(({ quantity, id }) => [id, quantity])),
+          depot,
+          Object.keys(depot)) 
         setDepot(Object.values(_depot));
       }
     }

@@ -82,7 +82,7 @@ const Layout = React.memo((props: Props) => {
         <Container
           id="app-main"
           component="main"
-          maxWidth="xl"
+          maxWidth="xxl"
           sx={{ gridArea: "main", p: { xs: 1, sm: 2 }, position: "relative" }}
         >
           {children}

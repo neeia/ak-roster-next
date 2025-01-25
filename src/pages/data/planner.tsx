@@ -76,7 +76,7 @@ const Goals: NextPage = () => {
         <Tab value={1} label="Depot" {...a11yProps(1)}></Tab>
         <Tab value={2} label="Goals" {...a11yProps(2)}></Tab>
       </Tabs>
-      <Box sx={{ display: { xs: "flex", md: "grid" }, gridTemplateColumns: "1fr 1fr", gap: 2 }}>
+      <Box sx={{ display: { xs: "flex", md: "grid" }, gridTemplateColumns: "1fr min(540px,49%);", gap: 5 }}>
         <TabPanel index={1} value={value}>
           <MaterialsNeeded
             goals={plannerGoals}

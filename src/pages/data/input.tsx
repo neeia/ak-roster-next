@@ -31,11 +31,14 @@ const Input: NextPage = () => {
 
   return (
     <Layout tab="/data" page="/input">
-      <Box
+      <Box 
+        maxWidth="xl"
         sx={{
           display: "flex",
           flexDirection: { xs: "column", sm: "row" },
           gap: 2,
+          marginLeft: "auto",
+          marginRight: "auto",
         }}
       >
         <Toolbar>

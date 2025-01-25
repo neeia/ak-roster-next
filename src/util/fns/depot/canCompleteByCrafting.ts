@@ -7,6 +7,10 @@ const canCompleteByCrafting = (
   depot: Record<string, DepotItem>,
   crafting: string[]
 ) => {
+
+  // 1. Save original recipe
+  const _materialsNeeded = { ...materialsNeeded };
+
   // 2. populate number of ingredients required for items being crafted
   const ingredientToCraftedItemsMapping: Record<string, string[]> = {};
   Object.values(itemsJson)
@@ -31,21 +35,19 @@ const canCompleteByCrafting = (
       }
     });
 
-  // 3. calculate what ingredients can be fulfilled by crafting
+  // 3. calculate what ingredients can be fulfilled by crafting and craft them in _depot
   const _depot = { ...depot }; // need to hypothetically deduct from stock
   const craftableItems: Record<string, boolean> = {};
-  Object.keys(depot)
+  Object.keys(materialsNeeded)
     .filter(
       (craftedItemId) =>
-        materialsNeeded[craftedItemId] != null &&
-        materialsNeeded[craftedItemId] - (depot[craftedItemId]?.stock ?? 0) > 0
-    )
+        (materialsNeeded[craftedItemId] - (depot[craftedItemId]?.stock ?? 0)) > 0)
     .sort(
       (itemA, itemB) =>
         itemsJson[itemA as keyof typeof itemsJson].tier - itemsJson[itemB as keyof typeof itemsJson].tier
     )
     .forEach((craftedItemId) => {
-      const shortage = materialsNeeded[craftedItemId] - (depot[craftedItemId].stock ?? 0);
+      const shortage = materialsNeeded[craftedItemId] - (depot[craftedItemId]?.stock ?? 0);
       const craftedItem: Item = itemsJson[craftedItemId as keyof typeof itemsJson];
       const ingredients = craftedItem.ingredients;
       if (ingredients != null) {
@@ -76,6 +78,13 @@ const canCompleteByCrafting = (
     if ((materialsNeeded[ingrId] ?? 0) - (_depot[ingrId]?.stock ?? 0) <= 0) {
       craftableItems[ingrId] = true;
     }
+  });
+
+  // 4. Use up original recipe materials, "theoretically crafted" in #3 and already existed
+  Object.keys(_materialsNeeded).forEach((ingrId) => {
+    const copy = { ..._depot[ingrId] };
+    copy.stock = Math.max((_depot[ingrId]?.stock ?? 0) - _materialsNeeded[ingrId], 0);
+    _depot[ingrId] = copy;
   });
 
   return { craftableItems, ingredientToCraftedItemsMapping, depot: _depot };

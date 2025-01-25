@@ -12,6 +12,15 @@ declare module "@mui/material/styles" {
       danger?: string;
     };
   }
+  //Typescript - allow changing breakpoints
+  interface BreakpointOverrides {
+    xs: true;
+    sm: true;
+    md: true;
+    lg: true;
+    xl: true;
+    xxl: true; // +xxl
+  }
 }
 
 const neutral = {
@@ -67,7 +76,8 @@ const appTheme = (brandColor: string, light = false) => {
         sm: 640,
         md: 900,
         lg: 1200,
-        xl: 1536,
+        xl: 1536, 
+        xxl: 2560,
       },
     },
     palette: {

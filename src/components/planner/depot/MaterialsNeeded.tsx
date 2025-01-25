@@ -1,6 +1,9 @@
 import CheckIcon from "@mui/icons-material/Check";
 import SettingsIcon from "@mui/icons-material/Settings";
-import { Box, Divider, IconButton, ListItemIcon, ListItemText, Menu, MenuItem } from "@mui/material";
+import CraftingIcon from "./CraftingIcon";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
+import { Box, Divider, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Button, Tooltip } from "@mui/material";
 import React, { useCallback, useState } from "react";
 
 import itemsJson from "data/items.json";
@@ -35,6 +38,10 @@ const MaterialsNeeded = React.memo((props: Props) => {
 
   const isSettingsMenuOpen = Boolean(anchorEl);
   const [exportImportOpen, setExportImportOpen] = useState<boolean>(false);
+
+  const craftToggleTooltips = ["Toggle only craftable materials ON","Toggle all crafting states ON","Reset all crafting states"];
+  const initialCraftToggle = 1;
+  const [craftToggle, setCraftToggle] = useState(initialCraftToggle);
 
   const handleSettingsButtonClick = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(e.currentTarget);
@@ -129,6 +136,48 @@ const MaterialsNeeded = React.memo((props: Props) => {
         ...s,
         depotSettings,
       }));
+      //switch to default state from manual imput, or to empty
+      setCraftToggle(depotSettings.crafting.length === 0 ? 0 : initialCraftToggle);
+    },
+    [settings, setSettings]
+  );
+  
+  const handleCraftingToggleAll = useCallback(
+    () => {
+      const depotSettings = { ...settings.depotSettings };
+      const crafting = [...depotSettings.crafting];
+
+      //cycle through crafting states:
+      // 0 = reset, 1 = only craftable, 2 = full crafting 
+      const nextCraftState = craftToggle < 2 ? craftToggle + 1 : 0;
+
+      //for non reset states filter and add craftable items
+      //[crafting]: 2 adds all > 0 (empties) > 1 (adds only craftable) > 2 (adds all) >...
+      if (nextCraftState > 0) {
+        Object.keys(depot).filter(
+          (itemID) => {
+            const Item = itemsJson[itemID as keyof typeof itemsJson] as Item;
+            return (Boolean(Item.ingredients)
+              //non-chips (but include dualchips)
+              && !Item.name.includes(" Chip")
+              //not already in crafting
+              && crafting.indexOf(itemID) === -1
+              //state 1 add only craftable (after empty state)
+              //or state 2: add missing 
+              && (nextCraftState === 1 && (craftableItems[itemID] ?? false)
+                ||
+                nextCraftState === 2)
+            );
+          }).forEach((itemID) => crafting.push(itemID));
+        depotSettings.crafting = crafting;
+      } else {
+        depotSettings.crafting = [];
+      }
+      setCraftToggle(nextCraftState);
+      setSettings((s) => ({
+        ...s,
+        depotSettings,
+      }));
     },
     [settings, setSettings]
   );
@@ -136,7 +185,7 @@ const MaterialsNeeded = React.memo((props: Props) => {
   const handleResetCrafting = useCallback(() => {
     const depotSettings = { ...settings.depotSettings };
     depotSettings.crafting = [];
-
+    setCraftToggle(0);
     setSettings((s) => ({ ...s, depotSettings }));
   }, [settings, setSettings]);
 
@@ -223,17 +272,35 @@ const MaterialsNeeded = React.memo((props: Props) => {
       <Board
         title="Depot"
         TitleAction={
-          <IconButton
-            id="settings-button"
-            onClick={handleSettingsButtonClick}
-            sx={{ alignSelf: "start", justifySelf: "end" }}
-            aria-label="Settings"
-            aria-haspopup="true"
-            aria-expanded={isSettingsMenuOpen ? "true" : undefined}
-            aria-controls={isSettingsMenuOpen ? "settings-menu" : undefined}
-          >
-            <SettingsIcon />
-          </IconButton>
+          <Box display="flex" gap={2}>
+            <Tooltip arrow title={craftToggleTooltips[craftToggle]}>
+              <Button
+                onClick={handleCraftingToggleAll}
+                variant="contained"
+                startIcon={
+                  craftToggle === 1 ? (
+                    <CraftingIcon />
+                  ) : craftToggle === 2 ? (
+                    <CheckCircleIcon sx={{ width: "30px", height: "30px" }} />
+                  ) :  (
+                    <RadioButtonUncheckedIcon sx={{ width: "30px", height: "30px" }} />
+                  )}
+                color="primary">
+                Crafting States
+              </Button>
+            </Tooltip>
+            <IconButton
+              id="settings-button"
+              onClick={handleSettingsButtonClick}
+              sx={{ alignSelf: "start", justifySelf: "end" }}
+              aria-label="Settings"
+              aria-haspopup="true"
+              aria-expanded={isSettingsMenuOpen ? "true" : undefined}
+              aria-controls={isSettingsMenuOpen ? "settings-menu" : undefined}
+            >
+              <SettingsIcon />
+            </IconButton>
+          </Box>
         }
         sx={{ borderRadius: { xs: "0px 0px 4px 4px", md: "4px" } }}
       >

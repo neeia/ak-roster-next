@@ -2,7 +2,7 @@ import AddCircleIcon from "@mui/icons-material/AddCircle";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import { Box, Button, ButtonBase, ButtonGroup, IconButton, InputAdornment, TextField, Tooltip } from "@mui/material";
-import React, { ElementType, useEffect, useState } from "react";
+import React, { ElementType, useEffect, useState, useMemo, useRef, useCallback } from "react";
 
 import { debounce } from "lodash";
 import items from "data/items.json";
@@ -46,6 +46,10 @@ const ItemNeeded: React.FC<Props> = React.memo((props) => {
   const [rawValue, setRawValue] = useState<string>("");
 
   const [focused, setFocused] = useState(false);
+  const textFieldRef = useRef<HTMLInputElement>(null);
+  const focusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const DebounceTextInputDelay = 2000 //ms for text input
+  const DebounceButtonDelay = 500 //ms for inc/dec buttons
 
   const abbrOwned =
     owned < 1000
@@ -58,12 +62,60 @@ const ItemNeeded: React.FC<Props> = React.memo((props) => {
     setRawValue(`${owned}`);
   }, [owned]);
 
+  //debounce template
+  const createDebouncedOnChange = useCallback(
+    (delay: number) =>
+      debounce((itemId: string, numberValue: number) => {
+        onChange(itemId, numberValue);
+      }, delay),
+    [onChange]
+  );
+  //two debounces with different delays
+  const debouncedOnChangeLong = useMemo(() => createDebouncedOnChange(DebounceTextInputDelay), [createDebouncedOnChange]);
+  const debouncedOnChangeShort = useMemo(() => createDebouncedOnChange(DebounceButtonDelay), [createDebouncedOnChange]);
+
+  //keep focus on text field when clicking on Inc/Dec
+  //to show rawValue and hide owned (doesn't update till debounced onChange)
+  const handleFocusTimeout = () => {
+    if (focusTimeoutRef.current) {
+      clearTimeout(focusTimeoutRef.current);
+    }
+    focusTimeoutRef.current = setTimeout(() => {
+      setFocused(false);
+    }, DebounceButtonDelay); 
+  };
+
+  // Cleanup debounced functions and focus, when unmounted
+  useEffect(() => {
+    return () => {
+      debouncedOnChangeLong.cancel();
+      debouncedOnChangeShort.cancel();
+
+      if (focusTimeoutRef.current) {
+        clearTimeout(focusTimeoutRef.current);
+      }
+    };
+  }, [debouncedOnChangeLong,debouncedOnChangeShort]);
+
+  //Inc/Dec additional handling: focus to text, rawValue, debounce
+  const IncDecOnChange = (newValue : number) => {
+    setRawValue(`${newValue}`);
+    debouncedOnChangeShort(itemId, newValue);
+    setFocused(true);
+    textFieldRef.current?.focus();
+    handleFocusTimeout();
+  }
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    //return focus to textfield on any change
+    setFocused(true);
+    textFieldRef.current?.focus();
+    
     const newRawValue = e.target.value;
     setRawValue(newRawValue);
     const numberValue = Number(newRawValue);
     if (!Number.isNaN(numberValue)) {
-      onChange(itemId, numberValue);
+      debouncedOnChangeLong(itemId, numberValue);
     }
   };
 
@@ -73,11 +125,16 @@ const ItemNeeded: React.FC<Props> = React.memo((props) => {
     </Button>
   );
 
-  const handleIncrement = () => {
-    onChange(itemId, owned + 1);
+    // Handle increment button click
+    const handleIncrement = () => {
+      const newValue = Number(rawValue) + 1;
+      IncDecOnChange(newValue);
   };
+
+  // Handle decrement button click
   const handleDecrement = () => {
-    onChange(itemId, owned - 1);
+      const newValue = Number(rawValue) - 1; 
+      IncDecOnChange(newValue);    
   };
 
   return (
@@ -126,8 +183,9 @@ const ItemNeeded: React.FC<Props> = React.memo((props) => {
           e.target.select();
           setFocused(true);
         }}
-        onBlur={() => setFocused(false)}
+        onBlur={handleFocusTimeout}
         onChange={handleChange}
+        inputRef={textFieldRef}
         disabled={itemId === "EXP"}
         slotProps={{
           htmlInput: {
@@ -155,7 +213,7 @@ const ItemNeeded: React.FC<Props> = React.memo((props) => {
                       size="small"
                       aria-label="Remove 1 from owned amount"
                       edge="start"
-                      disabled={owned === 0}
+                      disabled={Number(rawValue) <= 0}
                       onClick={() => handleDecrement()}
                     >
                       <RemoveCircleIcon />
